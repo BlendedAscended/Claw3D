@@ -36,6 +36,15 @@ const resolveHost = (env = process.env) => {
 
 const isIpv4Loopback = (value) => value.startsWith("127.");
 
+const isTailscaleIpv4 = (value) => {
+  const parts = value.split(".").map((part) => Number.parseInt(part, 10));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part))) {
+    return false;
+  }
+  const [first, second] = parts;
+  return first === 100 && second >= 64 && second <= 127;
+};
+
 const isIpv6Loopback = (value) => {
   if (value === "::1" || value === "0:0:0:0:0:0:0:1") return true;
   if (!value.startsWith("::ffff:")) return false;
@@ -54,7 +63,7 @@ const isPublicHost = (host) => {
 
   const ipVersion = net.isIP(normalized);
   if (ipVersion === 4) {
-    return !isIpv4Loopback(normalized);
+    return !isIpv4Loopback(normalized) && !isTailscaleIpv4(normalized);
   }
   if (ipVersion === 6) {
     return !isIpv6Loopback(normalized);

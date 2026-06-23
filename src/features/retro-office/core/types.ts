@@ -53,6 +53,7 @@ export type RenderAgent = SceneActor & {
   pingPongSide?: 0 | 1;
   pingPongPreviousWalkSpeed?: number;
   interactionTarget?: OfficeInteractionTargetId;
+  showcaseHandoffIndex?: number;
   smsBoothStage?: "door_outer" | "door_inner" | "typing";
   phoneBoothStage?: "door_outer" | "door_inner" | "receiver";
   serverRoomStage?: "door_outer" | "door_inner" | "terminal";

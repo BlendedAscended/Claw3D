@@ -11,6 +11,9 @@ const readDebugFlag = (value: string | undefined): boolean => {
   return ENABLED_RE.test(normalized);
 };
 
+const readEnabledFlag = (value: string | undefined): boolean =>
+  ENABLED_RE.test((value ?? "").trim());
+
 function OfficeLoadingFallback() {
   return (
     <div
@@ -32,11 +35,22 @@ function OfficeLoadingFallback() {
 
 export default function OfficePage() {
   const showOpenClawConsole = readDebugFlag(process.env.DEBUG);
+  const showcaseMode = readEnabledFlag(
+    process.env.NEXT_PUBLIC_CLAW3D_SHOWCASE_MODE || process.env.CLAW3D_SHOWCASE_MODE,
+  );
 
   return (
     <AgentStoreProvider>
       <Suspense fallback={<OfficeLoadingFallback />}>
-        <OfficeScreen showOpenClawConsole={showOpenClawConsole} />
+        <div
+          className="h-full w-full"
+          data-claw3d-showcase={showcaseMode ? "true" : undefined}
+        >
+          <OfficeScreen
+            showOpenClawConsole={showOpenClawConsole}
+            showcaseMode={showcaseMode}
+          />
+        </div>
       </Suspense>
     </AgentStoreProvider>
   );

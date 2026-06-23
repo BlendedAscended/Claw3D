@@ -665,6 +665,219 @@ type OfficeFeedEvent = {
   kind?: "status" | "reply";
 };
 
+type ShowcaseWireframeAgentSeed = {
+  agentId: string;
+  name: string;
+  workstream: string;
+  tasks: string[];
+  artifact: string;
+};
+
+const SHOWCASE_WIREFRAME_BASE_TS = 1_782_166_808_000;
+const SHOWCASE_WIREFRAME_TICKS_PER_PHASE = 4;
+const SHOWCASE_WIREFRAME_BRIEF =
+  "Generate a conversion ready website wireframe with strategy, content, build, and launch handoff.";
+
+const SHOWCASE_WIREFRAME_AGENT_SEEDS: ShowcaseWireframeAgentSeed[] = [
+  {
+    agentId: "showcase-hermes",
+    name: "Hermes",
+    workstream: "Council Orchestrator",
+    artifact: "routing-plan.md",
+    tasks: [
+      "Routing the website brief across the council",
+      "Checking handoff gates before design pass",
+      "Syncing wireframe status back to the client floor",
+      "Preparing the next approval checkpoint",
+    ],
+  },
+  {
+    agentId: "showcase-strategy",
+    name: "Strategy",
+    workstream: "Discovery and client outcomes",
+    artifact: "conversion-map.md",
+    tasks: [
+      "Turning goals into a page hierarchy",
+      "Scoring the primary conversion path",
+      "Writing section intent for the homepage",
+      "Flagging assumptions for the client brief",
+    ],
+  },
+  {
+    agentId: "showcase-research",
+    name: "Research",
+    workstream: "Market and workflow analysis",
+    artifact: "source-notes.md",
+    tasks: [
+      "Reviewing industry patterns for the offer",
+      "Extracting proof points from source notes",
+      "Mapping objections to page sections",
+      "Comparing competitor navigation patterns",
+    ],
+  },
+  {
+    agentId: "showcase-design",
+    name: "Design",
+    workstream: "Experience and interface direction",
+    artifact: "wireframe-v1.fig",
+    tasks: [
+      "Drafting responsive hero and CTA blocks",
+      "Balancing visual hierarchy across sections",
+      "Testing card density for mobile screens",
+      "Preparing a wireframe variation for review",
+    ],
+  },
+  {
+    agentId: "showcase-build",
+    name: "Build",
+    workstream: "Full stack implementation",
+    artifact: "component-plan.tsx",
+    tasks: [
+      "Assembling reusable layout blocks",
+      "Checking CMS fields against wireframe content",
+      "Planning component props for the preview",
+      "Validating route structure for the demo site",
+    ],
+  },
+  {
+    agentId: "showcase-automation",
+    name: "Automation",
+    workstream: "Agents, n8n, and HITL flows",
+    artifact: "handoff-flow.json",
+    tasks: [
+      "Wiring approval steps into the workflow",
+      "Preparing lead capture automation notes",
+      "Simulating client follow up triggers",
+      "Checking handoff events for delivery",
+    ],
+  },
+  {
+    agentId: "showcase-analytics",
+    name: "Analytics",
+    workstream: "Measurement and evidence",
+    artifact: "event-map.csv",
+    tasks: [
+      "Tagging funnel events for the wireframe",
+      "Estimating lead quality signals",
+      "Checking analytics coverage by section",
+      "Summarizing evidence gaps for the client",
+    ],
+  },
+  {
+    agentId: "showcase-qa",
+    name: "QA",
+    workstream: "Risk, test, and launch checks",
+    artifact: "launch-checklist.md",
+    tasks: [
+      "Testing edge cases in the page flow",
+      "Checking mobile tap targets and overflow",
+      "Reviewing accessibility states",
+      "Preparing launch risks for signoff",
+    ],
+  },
+  {
+    agentId: "showcase-delivery",
+    name: "Delivery",
+    workstream: "Client preview and closeout",
+    artifact: "client-preview.md",
+    tasks: [
+      "Packaging the wireframe preview notes",
+      "Writing the client ready change summary",
+      "Preparing next step options for approval",
+      "Syncing deliverables into the handoff queue",
+    ],
+  },
+];
+
+const SHOWCASE_RELEVANT_LINKS = [
+  {
+    label: "AI Agents",
+    detail: "Agent crews and HITL operations",
+    href: "https://veldonlab.com/services",
+  },
+  {
+    label: "Workflow Automation",
+    detail: "n8n, approvals, and handoffs",
+    href: "https://veldonlab.com/services",
+  },
+  {
+    label: "Industry Space",
+    detail: "Signals and buyer context",
+    href: "https://veldonlab.com/industry-space",
+  },
+  {
+    label: "Blog",
+    detail: "Notes, proof, and updates",
+    href: "https://veldonlab.com/blog",
+  },
+] as const;
+
+const buildShowcaseWireframeAgents = (tick: number): AgentState[] => {
+  const phaseIndex = Math.floor(tick / SHOWCASE_WIREFRAME_TICKS_PER_PHASE);
+  const now = SHOWCASE_WIREFRAME_BASE_TS + tick * 2_000;
+
+  return SHOWCASE_WIREFRAME_AGENT_SEEDS.map((seed, index) => {
+    const activeTask = seed.tasks[(phaseIndex + index) % seed.tasks.length];
+    const sessionKey = buildAgentMainSessionKey(seed.agentId, "wireframe");
+    const runId = `showcase-wireframe-${seed.agentId}-${phaseIndex}`;
+    const startedAt = now - (index + 1) * 17_000;
+
+    return {
+      agentId: seed.agentId,
+      name: seed.name,
+      runtimeName: seed.name,
+      identityName: seed.name,
+      sessionDisplayName: seed.name,
+      role: activeTask,
+      sessionKey,
+      avatarSeed: seed.agentId,
+      avatarProfile: createDefaultAgentAvatarProfile(seed.agentId),
+      model: "showcase/wireframe-sim",
+      thinkingLevel: "medium",
+      sessionExecHost: "gateway",
+      sessionExecSecurity: "allowlist",
+      sessionExecAsk: "off",
+      toolCallingEnabled: true,
+      showThinkingTraces: true,
+      status: "running",
+      sessionCreated: true,
+      awaitingUserInput: false,
+      hasUnseenActivity: false,
+      outputLines: [
+        `[wireframe] ${activeTask}`,
+        `[workstream] ${seed.workstream}`,
+        `[artifact] ${seed.artifact}`,
+        "[status] generating preview artifacts",
+      ],
+      lastResult: activeTask,
+      lastDiff: null,
+      runId,
+      runStartedAt: startedAt,
+      streamText: activeTask,
+      thinkingTrace: `Simulating ${seed.workstream.toLowerCase()} for the Veldon wireframe workflow.`,
+      latestOverride: null,
+      latestOverrideKind: null,
+      lastAssistantMessageAt: now - 1_000,
+      lastActivityAt: now,
+      latestPreview: activeTask,
+      lastUserMessage: SHOWCASE_WIREFRAME_BRIEF,
+      draft: "",
+      queuedMessages: [],
+      sessionSettingsSynced: true,
+      historyLoadedAt: now,
+      historyFetchLimit: 24,
+      historyFetchedCount: 3,
+      historyMaybeTruncated: false,
+      transcriptEntries: [],
+      transcriptRevision: phaseIndex,
+      transcriptSequenceCounter: 0,
+      sessionEpoch: 1,
+      lastHistoryRequestRevision: null,
+      lastAppliedHistoryRequestId: null,
+    };
+  });
+};
+
 type RemoteChatSessionState = {
   draft: string;
   mode: RuntimeAgentMessageMode;
@@ -948,10 +1161,227 @@ const inferRunningFromAgentSessions = async (params: {
 
 type OfficeScreenProps = {
   showOpenClawConsole?: boolean;
+  showcaseMode?: boolean;
 };
+
+function CouncilShowcasePanel({
+  agents,
+  status,
+}: {
+  agents: AgentState[];
+  status: string;
+}) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [rosterExpanded, setRosterExpanded] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const visibleAgents = agents.slice(0, 9);
+  const workingCount = agents.filter((agent) => agent.status === "running").length;
+  const selectedAgent =
+    agents.find((agent) => agent.agentId === selectedAgentId) ??
+    visibleAgents[0] ??
+    null;
+  const activeStage = selectedAgent?.name ?? "Hermes";
+
+  if (isCollapsed) {
+    return (
+      <button
+        type="button"
+        className="pointer-events-auto fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded border border-white/12 bg-[#080605]/88 font-mono text-sm font-semibold text-amber-100 shadow-2xl backdrop-blur-md transition-colors hover:border-amber-200/40 hover:bg-amber-300/10"
+        onClick={() => setIsCollapsed(false)}
+        aria-label="Expand Veldon Lab office panel"
+      >
+        <span aria-hidden="true">V</span>
+        <span className="absolute -right-1 -top-1 rounded border border-white/15 bg-black px-1 text-[10px] text-white/55">
+          &gt;
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <aside className="pointer-events-none fixed left-3 top-3 z-40 w-[min(310px,calc(100vw-1.5rem))] md:w-[300px]">
+      <section className="pointer-events-auto max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded border border-white/12 bg-[#080605]/86 shadow-2xl backdrop-blur-md">
+        <div className="sticky top-0 z-10 border-b border-white/10 bg-[#080605]/94 p-3 backdrop-blur-md">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-200/75">
+                Veldon Lab
+              </div>
+              <h1 className="mt-1 text-lg font-semibold tracking-tight text-white">
+                Virtual Office
+              </h1>
+            </div>
+            <button
+              type="button"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-white/10 bg-white/[0.04] font-mono text-sm text-white/65 transition-colors hover:border-white/25 hover:bg-white/[0.08]"
+              onClick={() => setIsCollapsed(true)}
+              aria-label="Collapse Veldon Lab office panel"
+            >
+              &lt;
+            </button>
+          </div>
+          <p className="mt-2 text-xs leading-5 text-white/60">
+            The office stays live while you open the most relevant Veldon pages
+            in a new tab.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 p-3">
+          <div className="rounded border border-white/10 bg-white/[0.04] p-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/45">
+              Council
+            </div>
+            <div className="mt-1 text-lg font-semibold text-white">{agents.length}</div>
+          </div>
+          <div className="rounded border border-white/10 bg-white/[0.04] p-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/45">
+              Active
+            </div>
+            <div className="mt-1 text-lg font-semibold text-white">{workingCount}</div>
+          </div>
+          <div className="rounded border border-emerald-400/20 bg-emerald-400/10 p-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-100/55">
+              Hermes
+            </div>
+            <div className="mt-1 text-sm font-semibold capitalize text-emerald-100">
+              {status}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-3 pb-3">
+          <div className="rounded border border-amber-300/20 bg-amber-300/[0.08] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-amber-100/55">
+                  Active Agent
+                </div>
+                <div className="mt-1 truncate text-sm font-semibold text-white">
+                  {activeStage}
+                </div>
+              </div>
+              <div className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-emerald-100">
+                Working
+              </div>
+            </div>
+            <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/65">
+              {selectedAgent?.role ||
+                "Routing the customer request through the office."}
+            </p>
+          </div>
+
+          <div className="mt-3 rounded border border-white/10 bg-black/28 p-3">
+            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/45">
+              Relevant Services
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {SHOWCASE_RELEVANT_LINKS.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between gap-3 rounded border border-white/10 bg-white/[0.04] px-2.5 py-2 transition-colors hover:border-amber-200/35 hover:bg-amber-300/[0.07]"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-semibold text-white">
+                      {item.label}
+                    </span>
+                    <span className="block truncate text-[10px] text-white/45">
+                      {item.detail}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono text-[10px] text-white/35">
+                    Open
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="mt-3 flex w-full items-center justify-between rounded border border-white/10 bg-black/35 px-3 py-2 text-left transition-colors hover:border-white/20 hover:bg-white/[0.06]"
+            onClick={() => setRosterExpanded((value) => !value)}
+            aria-expanded={rosterExpanded}
+          >
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">
+              Agent Roster
+            </span>
+            <span className="text-xs text-white/50">
+              {rosterExpanded ? "Hide" : "Show"}
+            </span>
+          </button>
+
+          {rosterExpanded ? (
+            <div className="mt-2 max-h-[34vh] space-y-2 overflow-auto pr-1">
+              {visibleAgents.length === 0 ? (
+                <div className="rounded border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100/80">
+                  Council runtime is reconnecting.
+                </div>
+              ) : (
+                visibleAgents.map((agent) => {
+                  const isSelected = agent.agentId === selectedAgent?.agentId;
+                  return (
+                    <button
+                      key={agent.agentId}
+                      type="button"
+                      className={`flex w-full items-center gap-3 rounded border px-3 py-2 text-left transition-colors ${
+                        isSelected
+                          ? "border-amber-300/35 bg-amber-300/10"
+                          : "border-white/10 bg-black/28 hover:border-white/20 hover:bg-white/[0.05]"
+                      }`}
+                      onClick={() => setSelectedAgentId(agent.agentId)}
+                      aria-pressed={isSelected}
+                    >
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 font-mono text-[11px] font-semibold text-[#120e08]"
+                        style={{ backgroundColor: stringToColor(agent.agentId) }}
+                      >
+                        {(agent.name || agent.agentId).slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-white">
+                          {agent.name || agent.agentId}
+                        </span>
+                        <span className="block truncate font-mono text-[10px] uppercase tracking-[0.12em] text-white/45">
+                          {agent.role || "Specialist agent"}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap gap-2 border-t border-white/10 p-3">
+          <a
+            href="https://veldonlab.com/growth-plan"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded border border-amber-300/25 bg-amber-300/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-amber-100 transition-colors hover:border-amber-200/45 hover:bg-amber-300/15"
+          >
+            Start Brief
+          </a>
+          <a
+            href="https://cal.com/sandeepx"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded border border-white/15 bg-white/[0.05] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/70 transition-colors hover:border-white/25 hover:bg-white/[0.08]"
+          >
+            Walkthrough
+          </a>
+        </div>
+      </section>
+    </aside>
+  );
+}
 
 export function OfficeScreen({
   showOpenClawConsole = true,
+  showcaseMode = false,
 }: OfficeScreenProps) {
   // Patch Hermes Phase 2: avoid useSearchParams() at component root — it
   // suspends during hydration in Next.js dev mode and keeps the parent
@@ -4299,6 +4729,14 @@ export function OfficeScreen({
     state.agents,
     workingUntilByAgentId,
   ]);
+  const showcaseAgents = useMemo(
+    () => (showcaseMode ? buildShowcaseWireframeAgents(clockTick) : []),
+    [clockTick, showcaseMode],
+  );
+  const showcaseOfficeAgents = useMemo(
+    () => showcaseAgents.map(mapAgentToOffice),
+    [showcaseAgents],
+  );
   const streamingTextByAgentId = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const agent of state.agents) {
@@ -4378,8 +4816,11 @@ export function OfficeScreen({
     ? (remoteChatByAgentId[focusedRemoteChatTarget.id] ?? EMPTY_REMOTE_CHAT_SESSION)
     : null;
   const allVisibleAgents = useMemo(
-    () => [...officeAgents, ...remoteOfficeAgents],
-    [officeAgents, remoteOfficeAgents],
+    () =>
+      showcaseMode
+        ? showcaseOfficeAgents
+        : [...officeAgents, ...remoteOfficeAgents],
+    [officeAgents, remoteOfficeAgents, showcaseMode, showcaseOfficeAgents],
   );
   const remoteOfficeVisible =
     remoteOfficeEnabled &&
@@ -4704,14 +5145,14 @@ export function OfficeScreen({
     (agent) => agent.hasUnseenActivity,
   ).length;
   const showEmptyFleetBanner =
-    status === "connected" && agentsLoaded && state.agents.length === 0;
+    !showcaseMode && status === "connected" && agentsLoaded && state.agents.length === 0;
   const emptyFleetMessage =
     state.error?.trim() ||
     "Connected to the gateway, but no agents were loaded into the office.";
 
   return (
     <main className="relative h-full w-full overflow-hidden bg-black">
-      {showGatewayLoadingOverlay ? (
+      {!showcaseMode && showGatewayLoadingOverlay ? (
         <div
           className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-[#120a05]/76"
           aria-label="Connecting to runtime"
@@ -4727,7 +5168,7 @@ export function OfficeScreen({
           </div>
         </div>
       ) : null}
-      {showGatewayConnectOverlay ? (
+      {!showcaseMode && showGatewayConnectOverlay ? (
         <div className="pointer-events-auto absolute inset-0 z-50 flex items-start justify-center bg-[#120a05]/76 px-4 py-10">
           <div className="w-full max-w-[860px] rounded-2xl border border-amber-900/55 bg-[#120a05]/98 p-3 shadow-2xl">
             <GatewayConnectScreen
@@ -4748,18 +5189,25 @@ export function OfficeScreen({
           </div>
         </div>
       ) : null}
-      <OfficeFloorNav
-        activeFloorId={activeFloor.id}
-        floorRosterCache={floorRosterCache}
-        onSelectFloor={(floorId) => {
-          void handleSelectFloor(floorId);
-        }}
-        activeAdapterType={(selectedAdapterType as FloorProvider) ?? null}
-      />
+      {showcaseMode ? (
+        <>
+          <CouncilShowcasePanel agents={showcaseAgents} status="connected" />
+        </>
+      ) : (
+        <OfficeFloorNav
+          activeFloorId={activeFloor.id}
+          floorRosterCache={floorRosterCache}
+          onSelectFloor={(floorId) => {
+            void handleSelectFloor(floorId);
+          }}
+          activeAdapterType={(selectedAdapterType as FloorProvider) ?? null}
+        />
+      )}
       <section className="relative h-full min-h-0 min-w-0 overflow-hidden">
         <RetroOffice3D
           key={activeFloor.id}
           agents={allVisibleAgents}
+          readOnly={showcaseMode}
           storageNamespace={activeFloor.id}
           layoutPreset={activeFloor.kind === "lobby" ? "lobby" : "office"}
           officeCenterSignal={officeCameraCenterSignal}
@@ -4776,8 +5224,8 @@ export function OfficeScreen({
           githubSkill={githubSkill}
           taskManagerEnabled={taskManagerReady}
           soundclawEnabled={soundclawReady}
-          officeTitle={officeTitle}
-          officeTitleLoaded={officeTitleLoaded}
+          officeTitle={showcaseMode ? "Veldon Lab Agent Council" : officeTitle}
+          officeTitleLoaded={showcaseMode ? true : officeTitleLoaded}
           remoteOfficeEnabled={remoteOfficeEnabled}
           remoteOfficeSourceKind={remoteOfficeSourceKind}
           remoteOfficeLabel={remoteOfficeLabel}
@@ -4849,18 +5297,30 @@ export function OfficeScreen({
               focusLocalAgent(agentId, { openChat: false });
             }
           }}
-          onAgentChatSelect={(agentId) => {
-            handleOpenAgentChat(agentId);
-          }}
-          onAddAgent={handleOpenCreateAgentWizard}
-          onAgentEdit={(agentId) => {
-            openAgentEditor(agentId, "avatar");
-          }}
-          onAgentDelete={(agentId) => {
-            void handleDeleteAgent(agentId);
-          }}
-          onDeskAssignmentChange={handleDeskAssignmentChange}
-          onDeskAssignmentsReset={handleDeskAssignmentsReset}
+          onAgentChatSelect={
+            showcaseMode
+              ? undefined
+              : (agentId) => {
+                  handleOpenAgentChat(agentId);
+                }
+          }
+          onAddAgent={showcaseMode ? undefined : handleOpenCreateAgentWizard}
+          onAgentEdit={
+            showcaseMode
+              ? undefined
+              : (agentId) => {
+                  openAgentEditor(agentId, "avatar");
+                }
+          }
+          onAgentDelete={
+            showcaseMode
+              ? undefined
+              : (agentId) => {
+                  void handleDeleteAgent(agentId);
+                }
+          }
+          onDeskAssignmentChange={showcaseMode ? undefined : handleDeskAssignmentChange}
+          onDeskAssignmentsReset={showcaseMode ? undefined : handleDeskAssignmentsReset}
           onGithubReviewDismiss={() => {
             handleGithubReviewDismiss();
           }}
@@ -4870,13 +5330,13 @@ export function OfficeScreen({
           onPhoneCallSpeak={handlePhoneCallSpeak}
           onPhoneCallComplete={handlePhoneCallComplete}
           onTextMessageComplete={handleTextMessageComplete}
-          onOpenGithubSkillSetup={() => {
+          onOpenGithubSkillSetup={showcaseMode ? undefined : () => {
             setMarketplaceOpen(true);
           }}
-          onJukeboxInteract={() => {
+          onJukeboxInteract={showcaseMode ? undefined : () => {
             setJukeboxOpen(true);
           }}
-          onKanbanInteract={() => {
+          onKanbanInteract={showcaseMode ? undefined : () => {
             setKanbanInstallPromptOpen(true);
           }}
           taskBoardAgents={state.agents}
@@ -5047,7 +5507,7 @@ export function OfficeScreen({
         </div>
       ) : null}
 
-      {!debugEnabled ? (
+      {!debugEnabled && !showcaseMode ? (
         <HQSidebar
           open={sidebarOpen}
           activeTab={activeSidebarTab}
@@ -5130,22 +5590,24 @@ export function OfficeScreen({
         />
       ) : null}
 
-      <SkillsMarketplaceModal
-        open={marketplaceOpen}
-        marketplace={marketplace}
-        onClose={() => setMarketplaceOpen(false)}
-        onSelectAgent={(agentId) => {
-          handleOpenAgentChat(agentId);
-          setMarketplaceOpen(false);
-        }}
-        onOpenAgentSettings={(agentId) => {
-          handleOpenAgentChat(agentId);
-          setMarketplaceOpen(false);
-          router.push("/office");
-        }}
-      />
+      {!showcaseMode ? (
+        <SkillsMarketplaceModal
+          open={marketplaceOpen}
+          marketplace={marketplace}
+          onClose={() => setMarketplaceOpen(false)}
+          onSelectAgent={(agentId) => {
+            handleOpenAgentChat(agentId);
+            setMarketplaceOpen(false);
+          }}
+          onOpenAgentSettings={(agentId) => {
+            handleOpenAgentChat(agentId);
+            setMarketplaceOpen(false);
+            router.push("/office");
+          }}
+        />
+      ) : null}
 
-      {showOnboardingWizard ? (
+      {showOnboardingWizard && !showcaseMode ? (
         <OnboardingWizard
           key={companyCreatedSignal > 0 ? `onboarding-company-created-${companyCreatedSignal}` : "onboarding-default"}
           gatewayConnected={status === "connected"}
@@ -5172,7 +5634,7 @@ export function OfficeScreen({
         />
       ) : null}
 
-      {showOpenClawConsole ? (
+      {showOpenClawConsole && !showcaseMode ? (
         <section className="pointer-events-auto fixed bottom-3 left-3 z-30 flex w-[520px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded border border-cyan-500/25 bg-black/78 shadow-2xl backdrop-blur">
           <div className="flex items-center justify-between border-b border-cyan-500/15 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">
             <span>Agent Event Console</span>
@@ -5384,11 +5846,12 @@ export function OfficeScreen({
         </section>
       ) : null}
 
-      <div
-        className={`fixed bottom-3 z-30 flex flex-col items-end gap-2 ${sidebarOpen ? "right-84" : "right-3"} ${
-          debugEnabled ? "hidden" : ""
-        }`}
-      >
+      {!showcaseMode ? (
+        <div
+          className={`fixed bottom-3 z-30 flex flex-col items-end gap-2 ${sidebarOpen ? "right-84" : "right-3"} ${
+            debugEnabled ? "hidden" : ""
+          }`}
+        >
         {chatOpen && (
           <div
             className="flex overflow-hidden rounded border border-white/10 bg-[#0e0a04] shadow-2xl"
@@ -5640,9 +6103,10 @@ export function OfficeScreen({
             </>
           )}
         </button>
-      </div>
+        </div>
+      ) : null}
 
-      {mainVoiceState !== "idle" || mainVoiceError ? (
+      {!showcaseMode && (mainVoiceState !== "idle" || mainVoiceError) ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center">
           <div
             className={`flex min-w-[220px] items-center gap-3 rounded-full border px-4 py-3 font-mono text-[12px] shadow-2xl backdrop-blur ${

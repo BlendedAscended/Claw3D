@@ -8,7 +8,7 @@ const securityHeaders = [
       "default-src 'self'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'self'",
+      "frame-ancestors 'self' https://veldonlab.com https://www.veldonlab.com http://localhost:3000 http://localhost:3001",
       "img-src 'self' data: blob: http: https:",
       "font-src 'self' data: https:",
       "style-src 'self' 'unsafe-inline' https:",
@@ -34,10 +34,6 @@ const securityHeaders = [
   {
     key: "X-Content-Type-Options",
     value: "nosniff",
-  },
-  {
-    key: "X-Frame-Options",
-    value: "SAMEORIGIN",
   },
   {
     key: "Permissions-Policy",

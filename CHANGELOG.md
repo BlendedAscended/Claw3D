@@ -1,3 +1,49 @@
+## 2026-06-23 04:38 UTC - Simplify showcase pane and externalize CTAs
+
+- Replaced the busy Cloud Studio panel with a compact scrollable Virtual Office pane.
+- Added a top-right collapse control and a small left-side V button for expanding the pane again.
+- Removed visible wireframe activity metadata, plan IDs, and the bottom Wireframe Factory dock from the public showcase.
+- Kept only relevant service/resource links in the pane and made Start Brief plus Walkthrough open in new tabs.
+- Verified typecheck, focused ESLint, production build, PM2 restart, and public page health.
+
+## 2026-06-23 04:22 UTC - Add Studio customer tools and agent work overlays
+
+- Added a collapsible Customer Tools drawer with Cal.com booking, Google calendar fallback, Google Meet, and AI voice handoff actions.
+- Added website context cards for Growth Plan, Industry Space, Services, and Blog so customers can open live site proof from the Studio.
+- Expanded the active agent overlay with plan ID, wireframe run ID, current artifact, and next handoff.
+- Added per-agent plan and artifact metadata to the roster and output dock for future multi-wireframe runs.
+- Verified typecheck, focused ESLint, production build, PM2 restart, and public page health.
+
+## 2026-06-23 04:09 UTC - Add quick win Cloud Studio usability improvements
+
+- Reworked the showcase overlay into a compact Cloud Studio panel so the office stays more visible by default.
+- Added an agent focus card, collapsible roster, full studio link, and start brief call to action.
+- Added a bottom Wireframe Factory dock with live workflow output cues for layout, mobile, and launch handoff.
+- Verified typecheck, focused ESLint, production build, PM2 restart, and public page health.
+
+## 2026-06-23 03:17 UTC - Tighten showcase labels and add wireframe handoff motion
+
+- Reduced the 3D agent nameplates to the agent name only so labels stay readable above each avatar.
+- Added showcase wireframe handoff routes so the council agents move between work points instead of standing idle.
+- Added animated paper plan packets that travel between showcase agents to imply content and wireframe data moving through the workflow.
+- Restored and saved the MacDaddy PM2 processes after the host reconnected with an empty process list.
+- Verified typecheck, focused ESLint on edited helper files, production build, PM2 status, and public page health.
+
+## 2026-06-22 22:44 UTC - Simulate continuous wireframe work in showcase mode
+
+- Added a nine agent wireframe workflow simulation for the public Veldon Lab council view.
+- Routes showcase mode through simulated running AgentState records so the existing 3D office renders all agents as active.
+- Suppressed gateway loading and reconnect overlays in showcase mode while keeping live runtime behavior unchanged.
+- Cleaned stale duplicate Next build artifact directories that were slowing production builds.
+- Verified typecheck, edited file lint, production build, PM2 restart, and public pages.
+
+## 2026-06-22 22:05 UTC - Allow Veldon virtual office iframe
+
+- Updated Next.js security headers so Claw3D can be framed by https://veldonlab.com and https://www.veldonlab.com.
+- Removed X-Frame-Options: SAMEORIGIN because it blocks cross-origin iframe embedding even when CSP is correct.
+- Rebuilt Claw3D and restarted pm2 process claw3d-studio.
+- Verified public /office response has no x-frame-options header and includes the updated frame-ancestors directive.
+
 # Changelog
 
 ## [0.1.4] - 2026-04-23

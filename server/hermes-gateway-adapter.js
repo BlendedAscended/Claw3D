@@ -62,12 +62,74 @@ const ADAPTER_PORT = parseInt(process.env.HERMES_ADAPTER_PORT || "18789", 10);
 const HERMES_MODEL = process.env.HERMES_MODEL || "hermes";
 const HERMES_AGENT_NAME = process.env.HERMES_AGENT_NAME || "Hermes";
 const HOME = process.env.HOME || "/tmp";
+const SHOWCASE_COUNCIL_ENABLED = /^(1|true|yes|on)$/i.test(
+  process.env.HERMES_SHOWCASE_COUNCIL || process.env.CLAW3D_SHOWCASE_MODE || ""
+);
 
 const AGENT_ID = "hermes";
 const MAIN_KEY = "main";
 const MAIN_SESSION_KEY = `agent:${AGENT_ID}:${MAIN_KEY}`;
 const CONFIG_PATH = `${HOME}/.hermes/config.json`;
 const MAX_TOOL_ROUNDS = 8;
+
+const SHOWCASE_COUNCIL_AGENTS = [
+  {
+    id: "strategy-council",
+    name: "Strategy",
+    role: "Discovery and client outcomes",
+    summary:
+      "Maps goals, constraints, and risks before the team builds. Turns a client brief into the work plan.",
+  },
+  {
+    id: "research-council",
+    name: "Research",
+    role: "Market and workflow analysis",
+    summary:
+      "Studies the client domain, competitors, buyer language, and operating reality.",
+  },
+  {
+    id: "design-council",
+    name: "Design",
+    role: "Experience and interface direction",
+    summary:
+      "Turns strategy into screens, journeys, visual systems, and clear handoffs.",
+  },
+  {
+    id: "build-council",
+    name: "Build",
+    role: "Full stack implementation",
+    summary:
+      "Ships the application, integrations, data flows, and production surfaces.",
+  },
+  {
+    id: "automation-council",
+    name: "Automation",
+    role: "Agents, n8n, and HITL flows",
+    summary:
+      "Connects tools, approvals, workflows, and background agent jobs.",
+  },
+  {
+    id: "analytics-council",
+    name: "Analytics",
+    role: "Measurement and evidence",
+    summary:
+      "Tracks the signals that show whether the work is moving the business.",
+  },
+  {
+    id: "qa-council",
+    name: "QA",
+    role: "Risk, test, and launch checks",
+    summary:
+      "Finds broken flows, edge cases, regressions, and launch blockers.",
+  },
+  {
+    id: "client-success-council",
+    name: "Client Success",
+    role: "Delivery, training, and adoption",
+    summary:
+      "Packages the work so clients know what changed, how to use it, and what comes next.",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Orchestrator system prompt
@@ -226,10 +288,25 @@ const agentRegistry = new Map([
     id: AGENT_ID,
     name: HERMES_AGENT_NAME,
     workspace: `${HOME}/.hermes/workspace-hermes`,
-    role: "Orchestrator",
-    systemPrompt: ORCHESTRATOR_SYSTEM_PROMPT,
+    role: SHOWCASE_COUNCIL_ENABLED ? "Council Orchestrator" : "Orchestrator",
+    systemPrompt: SHOWCASE_COUNCIL_ENABLED
+      ? `${ORCHESTRATOR_SYSTEM_PROMPT}\n\nShowcase context: You represent Veldon Lab's live AI council. Explain the team's work in client-friendly language, show how specialists coordinate, and avoid subscription or product-sales language.`
+      : ORCHESTRATOR_SYSTEM_PROMPT,
     settings: { wipe: false, continuity: true, model: HERMES_MODEL },
   }],
+  ...(SHOWCASE_COUNCIL_ENABLED
+    ? SHOWCASE_COUNCIL_AGENTS.map((agent) => [
+        agent.id,
+        {
+          id: agent.id,
+          name: agent.name,
+          workspace: `${HOME}/.hermes/workspace-${agent.id}`,
+          role: agent.role,
+          systemPrompt: `You are ${agent.name}, part of the Veldon Lab AI council. ${agent.summary} Keep explanations concrete, client-facing, and tied to real delivery work.`,
+          settings: { wipe: false, continuity: true, model: HERMES_MODEL },
+        },
+      ])
+    : []),
 ]);
 
 // Set of all active sendEvent functions (one per connected WS client)

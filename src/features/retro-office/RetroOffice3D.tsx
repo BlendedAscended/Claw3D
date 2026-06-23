@@ -242,6 +242,25 @@ const EMPTY_NUMBER_RECORD: Record<string, number> = {};
 const EMPTY_MONITOR_MAP: OfficeDeskMonitorMap = {};
 const EMPTY_CLEANING_CUES: OfficeCleaningCue[] = [];
 const EMPTY_FEED_EVENTS: FeedEvent[] = [];
+const SHOWCASE_AGENT_ID_PREFIX = "showcase-";
+const SHOWCASE_HANDOFF_PHASE_MS = 6_000;
+const SHOWCASE_HANDOFF_PACKET_COUNT = 3;
+
+const isShowcaseWireframeAgentId = (agentId: string): boolean =>
+  agentId.startsWith(SHOWCASE_AGENT_ID_PREFIX);
+
+const getShowcaseHandoffPoint = (
+  agentIndex: number,
+  now: number,
+): { x: number; y: number } => {
+  const phaseIndex = Math.floor(now / SHOWCASE_HANDOFF_PHASE_MS);
+  return (
+    ROAM_POINTS[(phaseIndex + agentIndex) % ROAM_POINTS.length] ?? {
+      x: LOCAL_OFFICE_CANVAS_WIDTH / 2,
+      y: LOCAL_OFFICE_CANVAS_HEIGHT / 2,
+    }
+  );
+};
 
 type DragState =
   | { kind: "idle" }
@@ -1067,6 +1086,9 @@ function useAgentTick(
       const meetingTarget = explicitMeetingHold
         ? resolveMeetingTarget(agent.id)
         : null;
+      const showcaseHandoffTarget = isShowcaseWireframeAgentId(agent.id)
+        ? getShowcaseHandoffPoint(idx, now)
+        : null;
       const smsBoothItem =
         (furnitureRef.current ?? []).find(
           (item) => item.type === "sms_booth",
@@ -1392,6 +1414,45 @@ function useAgentTick(
             Math.hypot(existing.x - deskPos.x, existing.y - deskPos.y) < 15
               ? "sitting"
               : "walking";
+        } else if (effectiveStatus === "working" && showcaseHandoffTarget) {
+          ns.pingPongUntil = undefined;
+          ns.pingPongTargetX = undefined;
+          ns.pingPongTargetY = undefined;
+          ns.pingPongFacing = undefined;
+          ns.pingPongPartnerId = undefined;
+          ns.pingPongTableUid = undefined;
+          ns.pingPongSide = undefined;
+          ns.walkSpeed =
+            existing.pingPongPreviousWalkSpeed ?? existing.walkSpeed;
+          ns.pingPongPreviousWalkSpeed = undefined;
+          ns.interactionTarget = undefined;
+          ns.phoneBoothStage = undefined;
+          ns.serverRoomStage = undefined;
+          ns.gymStage = undefined;
+          ns.qaLabStage = undefined;
+          ns.qaLabStationType = undefined;
+          ns.workoutStyle = undefined;
+          const targetChanged =
+            existing.targetX !== showcaseHandoffTarget.x ||
+            existing.targetY !== showcaseHandoffTarget.y;
+          ns.targetX = showcaseHandoffTarget.x;
+          ns.targetY = showcaseHandoffTarget.y;
+          if (targetChanged) {
+            ns.path = planPath(
+              existing.x,
+              existing.y,
+              showcaseHandoffTarget.x,
+              showcaseHandoffTarget.y,
+            );
+          }
+          ns.showcaseHandoffIndex = idx;
+          ns.state =
+            Math.hypot(
+              existing.x - showcaseHandoffTarget.x,
+              existing.y - showcaseHandoffTarget.y,
+            ) < 15
+              ? "standing"
+              : "walking";
         } else if (effectiveStatus === "working") {
           ns.pingPongUntil = undefined;
           ns.pingPongTargetX = undefined;
@@ -1485,7 +1546,7 @@ function useAgentTick(
                               x: serverRoomRoute.targetX,
                               y: serverRoomRoute.targetY,
                             }
-                          : deskPos;
+                          : (deskPos ?? showcaseHandoffTarget);
             if (!nextTarget) {
               ns.interactionTarget = undefined;
               ns.serverRoomStage = undefined;
@@ -1516,7 +1577,9 @@ function useAgentTick(
                       ? "qa_lab"
                       : explicitGithubHold
                         ? "server_room"
-                        : "desk";
+                        : deskPos
+                          ? "desk"
+                          : undefined;
             ns.phoneBoothStage =
               explicitMeetingHold ||
               explicitGymHold ||
@@ -1637,7 +1700,7 @@ function useAgentTick(
                             x: serverRoomRoute.targetX,
                             y: serverRoomRoute.targetY,
                           }
-                        : (deskPos ?? { x: sx, y: sy })
+                        : (deskPos ?? showcaseHandoffTarget ?? { x: sx, y: sy })
             : { x: sx, y: sy };
         ns = {
           x: sx,
@@ -1648,6 +1711,7 @@ function useAgentTick(
           frame: 0,
           walkSpeed: WALK_SPEED * (0.7 + Math.random() * 0.6),
           phaseOffset: Math.random() * Math.PI * 2,
+          showcaseHandoffIndex: showcaseHandoffTarget ? idx : undefined,
           state:
             effectiveStatus === "working" &&
             (explicitMeetingHold ||
@@ -1656,7 +1720,8 @@ function useAgentTick(
               explicitPhoneBoothHold ||
               explicitQaHold ||
               explicitGithubHold ||
-              deskPos)
+              deskPos ||
+              showcaseHandoffTarget)
               ? "walking"
               : "standing",
           interactionTarget: explicitMeetingHold
@@ -2037,8 +2102,9 @@ function useAgentTick(
                 frame: agent.frame + 1,
               };
             }
-            ns =
-              agent.interactionTarget === "sms_booth"
+            ns = isShowcaseWireframeAgentId(agent.id)
+              ? "standing"
+              : agent.interactionTarget === "sms_booth"
                 ? "standing"
                 : agent.interactionTarget === "phone_booth"
                   ? "standing"
@@ -2190,6 +2256,94 @@ function useAgentTick(
     deskByAgentRef,
     planPath,
   };
+}
+
+function ShowcaseHandoffPackets({
+  agentsRef,
+}: {
+  agentsRef: React.RefObject<RenderAgent[]>;
+}) {
+  const packetRefs = useRef<Array<THREE.Group | null>>([]);
+
+  useFrame(({ clock }) => {
+    const showcaseAgents = agentsRef.current.filter(
+      (agent) =>
+        isShowcaseWireframeAgentId(agent.id) && agent.status === "working",
+    );
+
+    for (let index = 0; index < SHOWCASE_HANDOFF_PACKET_COUNT; index += 1) {
+      const packet = packetRefs.current[index];
+      if (!packet) continue;
+      if (showcaseAgents.length < 2) {
+        packet.visible = false;
+        continue;
+      }
+
+      const elapsed = clock.getElapsedTime();
+      const cycleDuration = 3.8;
+      const cycle = elapsed / cycleDuration + index * 0.32;
+      const pairIndex = Math.floor(cycle) % showcaseAgents.length;
+      const progress = cycle % 1;
+      const eased =
+        progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const fromAgent = showcaseAgents[pairIndex];
+      const toAgent = showcaseAgents[(pairIndex + 1) % showcaseAgents.length];
+      if (!fromAgent || !toAgent) {
+        packet.visible = false;
+        continue;
+      }
+
+      const [fromX, , fromZ] = toWorld(fromAgent.x, fromAgent.y);
+      const [toX, , toZ] = toWorld(toAgent.x, toAgent.y);
+      packet.position.set(
+        THREE.MathUtils.lerp(fromX, toX, eased),
+        0.66 + Math.sin(progress * Math.PI) * 0.22,
+        THREE.MathUtils.lerp(fromZ, toZ, eased),
+      );
+      packet.rotation.y = Math.atan2(toX - fromX, toZ - fromZ);
+      packet.rotation.z = Math.sin(elapsed * 4.6 + index) * 0.08;
+      packet.visible = true;
+    }
+  });
+
+  return (
+    <group>
+      {Array.from({ length: SHOWCASE_HANDOFF_PACKET_COUNT }).map((_, index) => (
+        <group
+          key={`showcase-handoff-packet-${index}`}
+          ref={(node) => {
+            packetRefs.current[index] = node;
+          }}
+          visible={false}
+        >
+          <mesh>
+            <boxGeometry args={[0.18, 0.012, 0.12]} />
+            <meshStandardMaterial
+              color="#fff7d6"
+              emissive="#facc15"
+              emissiveIntensity={0.12}
+              roughness={0.55}
+            />
+          </mesh>
+          <mesh position={[0, 0.009, -0.026]}>
+            <boxGeometry args={[0.12, 0.004, 0.009]} />
+            <meshBasicMaterial color="#d97706" />
+          </mesh>
+          <mesh position={[0, 0.01, 0.002]}>
+            <boxGeometry args={[0.14, 0.004, 0.007]} />
+            <meshBasicMaterial color="#64748b" />
+          </mesh>
+          <mesh position={[0, 0.011, 0.026]}>
+            <boxGeometry args={[0.1, 0.004, 0.007]} />
+            <meshBasicMaterial color="#64748b" />
+          </mesh>
+          <pointLight color="#facc15" intensity={0.18} distance={0.85} />
+        </group>
+      ))}
+    </group>
+  );
 }
 
 // ============================================================
@@ -2530,19 +2684,6 @@ export function RetroOffice3D({
           : defaultRemoteLayoutFurniture,
     [defaultRemoteLayoutFurniture, remoteLayoutSnapshot, remoteOfficeEnabled],
   );
-  useEffect(() => {
-    setFurniture(
-      buildInitialFurnitureLayout(storageNamespace, layoutPreset).filter(
-        (item) => !isRetiredPingPongLamp(item),
-      ),
-    );
-    setSelectedUid(null);
-    setDeskActionUid(null);
-    setDeskAssignPickerOpen(false);
-    setDrag({ kind: "idle" });
-    setGhostPos(null);
-    setWallDrawStart(null);
-  }, [layoutPreset, storageNamespace]);
   const [editMode, setEditMode] = useState(false);
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const [hoverUid, setHoverUid] = useState<string | null>(null);
@@ -2574,6 +2715,23 @@ export function RetroOffice3D({
   } | null>(null);
   const [deskActionUid, setDeskActionUid] = useState<string | null>(null);
   const [deskAssignPickerOpen, setDeskAssignPickerOpen] = useState(false);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- layout preset swaps must reset local editor state. */
+  useEffect(() => {
+    setFurniture(
+      buildInitialFurnitureLayout(storageNamespace, layoutPreset).filter(
+        (item) => !isRetiredPingPongLamp(item),
+      ),
+    );
+    setSelectedUid(null);
+    setDeskActionUid(null);
+    setDeskAssignPickerOpen(false);
+    setDrag({ kind: "idle" });
+    setGhostPos(null);
+    setWallDrawStart(null);
+  }, [layoutPreset, storageNamespace]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   // New Idea 3: speech bubble agent IDs.
   const [speechAgentIds, setSpeechAgentIds] = useState<Set<string>>(new Set());
   const statusFeedEvents = useMemo(
@@ -2835,6 +2993,10 @@ export function RetroOffice3D({
   const sceneAgents = useMemo<SceneActor[]>(
     () => [...agents, ...janitorActors],
     [agents, janitorActors],
+  );
+  const showcaseHandoffVisible = useMemo(
+    () => readOnly && agents.some((agent) => isShowcaseWireframeAgentId(agent.id)),
+    [agents, readOnly],
   );
 
   const {
@@ -5715,7 +5877,6 @@ export function RetroOffice3D({
                   key={agent.id}
                   agentId={agent.id}
                   name={agent.name}
-                  subtitle={"subtitle" in agent ? agent.subtitle ?? null : null}
                   status={agent.status}
                   color={agentColorMap.get(agent.id) ?? "#888"}
                   appearance={
@@ -5753,6 +5914,10 @@ export function RetroOffice3D({
                 />
               );
             })}
+
+            {showcaseHandoffVisible ? (
+              <ShowcaseHandoffPackets agentsRef={renderAgentsRef} />
+            ) : null}
 
             <ScenePingPongBall agentsRef={renderAgentsRef} />
 
