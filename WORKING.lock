@@ -1,5 +1,0 @@
-agent: Codex GPT-5
-session: 2026-06-22T22:04:09Z-claw3d-iframe-headers
-task: allow veldonlab.com to iframe Claw3D office
-files: next.config.ts, AGENT_REGISTRY.md, WORKING.lock
-expires: 2026-06-22T22:34:09Z
