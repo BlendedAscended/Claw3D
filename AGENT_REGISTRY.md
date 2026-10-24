@@ -14,3 +14,7 @@
 | 2026-06-23 04:24 UTC | Codex GPT-5 | Add Studio customer action drawer and agent work overlays | completed | src/features/office/screens/OfficeScreen.tsx, CHANGELOG.md, CHANGES.md, AGENT_REGISTRY.md, WORKING.lock |
 
 | 2026-06-23 04:51 UTC | Codex GPT-5 | Simplify Cloud Studio pane and collapse behavior | completed | src/features/office/screens/OfficeScreen.tsx, CHANGELOG.md, CHANGES.md, AGENT_REGISTRY.md, WORKING.lock |
+| 2026-10-24T21:35:44.465760+00:00 | codex | Retire legacy token limits: AGENTS.md | completed   | codex-rule-retirement-20261024 |
+| 2026-10-24T21:35:45.021542+00:00 | codex | Retire legacy token limits: AGENTS.md | completed   | codex-rule-retirement-20261024 |
+| 2026-10-24T21:38:05.137053+00:00 | codex | Retire legacy token limits: AGENTS.md | completed   | codex-rule-retirement-20261024 |
+| 2026-10-24T21:42:43.503181+00:00 | codex | Retire legacy token limits: AGENTS.md | completed   | codex-rule-retirement-20261024 |
